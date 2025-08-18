@@ -78,7 +78,12 @@ async def generate_summary(request_data: SummaryRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="Server is not configured with an API key.")
 
-    headers = {"Authorization": f"Bearer {api_key}", "HTTP-Referer": "'https://summary-app-backend.onrender.com"}
+    headers = {
+    "Authorization": f"Bearer {api_key}",
+    "Content-Type": "application/json",
+    "HTTP-Referer": "https://summary-app-backend.onrender.com"
+}
+
     json_payload = {
         "model": "deepseek/deepseek-chat",
         "messages": [
