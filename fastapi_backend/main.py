@@ -15,23 +15,7 @@ from fastapi.responses import FileResponse
 # --- New Imports for Email ---
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 
-# Create FastAPI app
-app = FastAPI()
 
-
-# --- Serve Frontend ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
-
-# Serve index.html at /
-
-@app.get("/")
-async def serve_root():
-    index_path = os.path.join(FRONTEND_DIR, "index.html")
-    if not os.path.isfile(index_path):
-        # Helpful error if Render root misconfigured
-        return {"error": "index.html not found. Ensure Render root includes /frontend."}
-    return FileResponse(index_path)
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -73,6 +57,20 @@ conf = ConnectionConfig(
     VALIDATE_CERTS = True
 )
 
+# --- Serve Frontend ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
+
+# Serve index.html at /
+
+@app.get("/")
+async def serve_root():
+    index_path = os.path.join(FRONTEND_DIR, "index.html")
+    if not os.path.isfile(index_path):
+        # Helpful error if Render root misconfigured
+        return {"error": "index.html not found. Ensure Render root includes /frontend."}
+    return FileResponse(index_path)
+
 # --- API Endpoints ---
 @app.post("/api/generate-summary", response_model=SummaryResponse)
 async def generate_summary(request_data: SummaryRequest):
@@ -80,7 +78,7 @@ async def generate_summary(request_data: SummaryRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="Server is not configured with an API key.")
 
-    headers = {"Authorization": f"Bearer {api_key}", "HTTP-Referer": "http://localhost:8000"}
+    headers = {"Authorization": f"Bearer {api_key}", "HTTP-Referer": "'https://summary-app-backend.onrender.com"}
     json_payload = {
         "model": "deepseek/deepseek-chat",
         "messages": [
