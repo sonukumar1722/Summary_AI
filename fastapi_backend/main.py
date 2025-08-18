@@ -9,12 +9,35 @@ from pydantic import BaseModel, EmailStr
 from typing import List
 from dotenv import load_dotenv
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 # --- New Imports for Email ---
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 
+# Create FastAPI app
+app = FastAPI()
+
+
+# --- Serve Frontend ---
+FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+
+# Mount /static if you have css/js/images inside frontend/static/
+if os.path.isdir(os.path.join(FRONTEND_DIR, "static")):
+    app.mount("/static", StaticFiles(directory=os.path.join(FRONTEND_DIR, "static")), name="static")
+
+# Serve index.html at /
+@app.get("/")
+def serve_index():
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
+# Catch-all route (important for SPA navigation)
+@app.get("/{full_path:path}")
+def serve_catchall(full_path: str):
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
 # Load environment variables from a .env file
 load_dotenv()
-
 # --- Pydantic Models for Data Validation ---
 class SummaryRequest(BaseModel):
     transcript: str
