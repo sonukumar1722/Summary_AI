@@ -127,7 +127,8 @@
                 summarySection.classList.add('hidden');
 
                 try {
-                    const response = await fetch('http://127.0.0.1:8000/api/generate-summary', {
+                    // const response = await fetch('http://127.0.0.1:8000/api/generate-summary', {
+                    const response = await fetch('https://summary-app-backend.onrender.com/api/generate-summary', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ transcript: transcriptInput.value, prompt: promptInput.value })
@@ -161,7 +162,8 @@
                 }
                 
                 try {
-                    const response = await fetch('http://127.0.0.1:8000/api/share-email', {
+                    //const response = await fetch('http://127.0.0.1:8000/api/share-email', {
+                    const response = await fetch('https://summary-app-backend.onrender.com/api/share-email', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ recipients: recipients, content: plainTextSummary })
