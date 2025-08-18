@@ -20,21 +20,18 @@ app = FastAPI()
 
 
 # --- Serve Frontend ---
-FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
-
-# Mount /static if you have css/js/images inside frontend/static/
-if os.path.isdir(os.path.join(FRONTEND_DIR, "static")):
-    app.mount("/static", StaticFiles(directory=os.path.join(FRONTEND_DIR, "static")), name="static")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
 
 # Serve index.html at /
-@app.get("/")
-def serve_index():
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
-# Catch-all route (important for SPA navigation)
-@app.get("/{full_path:path}")
-def serve_catchall(full_path: str):
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+@app.get("/")
+async def serve_root():
+    index_path = os.path.join(FRONTEND_DIR, "index.html")
+    if not os.path.isfile(index_path):
+        # Helpful error if Render root misconfigured
+        return {"error": "index.html not found. Ensure Render root includes /frontend."}
+    return FileResponse(index_path)
 
 # Load environment variables from a .env file
 load_dotenv()
