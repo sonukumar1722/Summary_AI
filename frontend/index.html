@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Summary Tool (Full-Featured)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); border-left-color: #4f46e5; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        /* Styles for rendered markdown content */
+        .markdown-body { overflow-y: auto; word-wrap: break-word; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 600; margin-top: 1em; margin-bottom: 0.5em; line-height: 1.2; }
+        .markdown-body ul { list-style-type: disc; padding-left: 1.5em; }
+        .markdown-body li { margin-bottom: 0.5em; }
+        .markdown-body p { margin-bottom: 0.75em; }
+        .markdown-body strong { font-weight: 600; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-start justify-center min-h-screen pt-8 sm:pt-12">
+
+    <div id="app" class="w-full max-w-3xl bg-white rounded-xl shadow-lg p-6 sm:p-8 space-y-6">
+        
+        <div class="text-center">
+            <h1 class="text-3xl font-bold text-gray-800">AI Summary Tool</h1>
+            <p class="text-gray-500 mt-1">Generate, Edit, and Share Summaries</p>
+        </div>
+
+        <!-- Step 1: Input -->
+        <div class="form-group">
+            <label for="transcript" class="block text-sm font-medium text-gray-700 mb-1">1. Upload or Paste Transcript</label>
+            <textarea id="transcript" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            <div class="mt-2"><label for="file-upload" class="cursor-pointer inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-md text-sm">Upload .txt file</label><input id="file-upload" type="file" accept=".txt" class="hidden"></div>
+        </div>
+
+        <!-- Step 2: Prompt -->
+        <div class="form-group">
+            <label for="prompt" class="block text-sm font-medium text-gray-700 mb-1">2. Enter Your Custom Instruction</label>
+            <input type="text" id="prompt" value="Summarize in bullet points for executives" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Generate Button -->
+        <button id="generateBtn" class="w-full flex items-center justify-center bg-indigo-600 text-white font-bold py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300">
+            <span id="btn-text">✨ Generate Summary</span><div id="spinner" class="spinner hidden ml-3"></div>
+        </button>
+
+        <!-- Step 3: View and Share -->
+        <div id="summary-section" class="hidden space-y-4">
+            <div class="form-group">
+                <label for="summary-output" class="block text-sm font-medium text-gray-700 mb-1">3. Your Generated Summary</label>
+                <div id="summary-output" class="p-4 border border-gray-300 rounded-md bg-gray-50 h-80 markdown-body"></div>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg space-y-4">
+                <h3 class="text-lg font-semibold text-gray-800">Share Your Summary</h3>
+                <div class="form-group">
+                    <label for="recipients" class="block text-sm font-medium text-gray-700 mb-1">Recipient Emails</label>
+                    <input type="text" id="recipients" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" placeholder="email1@example.com, email2@example.com">
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button id="shareBtn" class="flex-1 flex items-center justify-center bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700">Share via Email</button>
+                    <button id="pdfBtn" class="flex-1 flex items-center justify-center bg-red-600 text-white font-bold py-2 px-4 rounded-md hover:bg-red-700">Download as PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="status-box" class="hidden p-4 rounded-md text-sm"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const { jsPDF } = window.jspdf;
+
+            const transcriptInput = document.getElementById('transcript');
+            const fileUpload = document.getElementById('file-upload');
+            const promptInput = document.getElementById('prompt');
+            const generateBtn = document.getElementById('generateBtn');
+            const btnText = document.getElementById('btn-text');
+            const spinner = document.getElementById('spinner');
+            const summarySection = document.getElementById('summary-section');
+            const summaryOutput = document.getElementById('summary-output');
+            const statusBox = document.getElementById('status-box');
+            const recipientsInput = document.getElementById('recipients');
+            const shareBtn = document.getElementById('shareBtn');
+            const pdfBtn = document.getElementById('pdfBtn');
+
+            let rawMarkdownSummary = '';
+
+            fileUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => { transcriptInput.value = e.target.result; };
+                    reader.readAsText(file);
+                }
+            });
+
+            generateBtn.addEventListener('click', handleGenerateSummary);
+            shareBtn.addEventListener('click', handleShareEmail);
+            pdfBtn.addEventListener('click', handleDownloadPdf);
+
+            function showStatus(message, type = 'error') {
+                statusBox.className = `p-4 rounded-md text-sm ${type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+                statusBox.textContent = message;
+            }
+
+            function setLoading(isLoading) {
+                generateBtn.disabled = isLoading;
+                btnText.textContent = isLoading ? 'Generating...' : '✨ Generate Summary';
+                spinner.classList.toggle('hidden', !isLoading);
+            }
+
+            async function handleGenerateSummary() {
+                statusBox.className = 'hidden';
+                if (!transcriptInput.value.trim() || !promptInput.value.trim()) {
+                    showStatus('Please provide both a transcript and a prompt.');
+                    return;
+                }
+                setLoading(true);
+                summarySection.classList.add('hidden');
+
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/api/generate-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ transcript: transcriptInput.value, prompt: promptInput.value })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail || 'An unknown error occurred.');
+                    
+                    summaryOutput.innerHTML = data.summary_html;
+                    rawMarkdownSummary = data.summary_markdown;
+
+                    summarySection.classList.remove('hidden');
+                } catch (error) {
+                    showStatus(`Failed to generate summary: ${error.message}`);
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            async function handleShareEmail() {
+                const recipients = recipientsInput.value.split(',').map(e => e.trim()).filter(e => e);
+                if (recipients.length === 0) {
+                    showStatus('Please enter at least one recipient email.');
+                    return;
+                }
+                
+                const plainTextSummary = summaryOutput.innerText;
+
+                if (!plainTextSummary.trim()) {
+                    showStatus('There is no summary to share.');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/api/share-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ recipients: recipients, content: plainTextSummary })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail || 'Failed to send email.');
+                    showStatus(data.message, 'success');
+                } catch (error) {
+                    showStatus(error.message);
+                }
+            }
+
+            function handleDownloadPdf() {
+                // --- CHANGE: Get plain text from the rendered HTML for the PDF body ---
+                const plainTextSummary = summaryOutput.innerText;
+
+                if (!plainTextSummary.trim()) {
+                    showStatus('There is no summary to download.');
+                    return;
+                }
+                const doc = new jsPDF();
+                // --- CHANGE: Use the plain text version ---
+                doc.text(plainTextSummary, 10, 10, { maxWidth: 180 });
+                doc.save('summary.pdf');
+            }
+        });
+    </script>
+</body>
+</html>
