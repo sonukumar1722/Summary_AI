@@ -75,6 +75,7 @@ async def serve_root():
 @app.post("/api/generate-summary", response_model=SummaryResponse)
 async def generate_summary(request_data: SummaryRequest):
     api_key = os.getenv('OPENROUTER_API_KEY')
+    print(api_key)
     if not api_key:
         raise HTTPException(status_code=500, detail="Server is not configured with an API key.")
 
@@ -85,8 +86,8 @@ async def generate_summary(request_data: SummaryRequest):
 }
 
     json_payload = {
-        "model": "mistral-7b-instruct",
-
+        "model": "deepseek/deepseek-chat",
+        
         "messages": [
             {"role": "system", "content": "You are an expert assistant who creates structured summaries from transcripts. Your response must be in Markdown format."},
             {"role": "user", "content": f'Instruction: "{request_data.prompt}".\n\nTranscript: "{request_data.transcript}"'}
