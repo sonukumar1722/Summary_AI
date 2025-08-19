@@ -95,13 +95,16 @@ async def generate_summary(request_data: SummaryRequest):
 
     try:
         async with httpx.AsyncClient() as client:
+            
             response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=json_payload, timeout=60.0)
+            print(response)
             response.raise_for_status()
             api_data = response.json()
             markdown_summary = api_data['choices'][0]['message']['content']
             html_summary = markdown.markdown(markdown_summary)
             return SummaryResponse(summary_html=html_summary, summary_markdown=markdown_summary)
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/share-email")
