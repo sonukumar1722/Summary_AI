@@ -105,7 +105,7 @@ async def generate_summary(request_data: SummaryRequest):
             return SummaryResponse(summary_html=html_summary, summary_markdown=markdown_summary)
     except Exception as e:
         print(e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Cannot get response: {str(e)}")
 
 @app.post("/api/share-email")
 async def share_email(email_data: EmailRequest):
