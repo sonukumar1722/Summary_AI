@@ -95,7 +95,7 @@ async def generate_summary(request_data: SummaryRequest):
 
     try:
         async with httpx.AsyncClient() as client:
-            
+            print('generate_summary called')
             response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=json_payload, timeout=60.0)
             print(response)
             response.raise_for_status()
